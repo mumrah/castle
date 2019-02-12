@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.castle.cluster.CastleCluster;
 import io.confluent.castle.cluster.CastleNode;
 import io.confluent.castle.common.JsonTransformer;
+import io.confluent.castle.role.DynamicVariableProvider;
 import io.confluent.castle.role.TaskRole;
 
 import java.util.HashMap;
@@ -75,9 +76,12 @@ public class TaskStartAction extends Action  {
         return transformedSpecs;
     }
 
-    private Map<String, String> getTransforms(CastleCluster cluster) {
+    private Map<String, String> getTransforms(CastleCluster cluster) throws Exception {
         HashMap<String, String> transforms = new HashMap<>();
-        transforms.put("bootstrapServers", cluster.getBootstrapServers());
+        for (Map.Entry<String, DynamicVariableProvider> entry :
+                cluster.dynamicVariableProviders().providers().entrySet()) {
+            transforms.put(entry.getKey(), entry.getValue().calculate(cluster));
+        }
         return transforms;
     }
 };

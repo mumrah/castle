@@ -17,33 +17,32 @@
 
 package io.confluent.castle.role;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.confluent.castle.action.Action;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
+import io.confluent.castle.cluster.CastleCluster;
 
 /**
- * A role which a particular castle cluster node can have.
+ * Provides a value for a dynamic variable.
  *
- * A cluster node may have multiple roles.
+ * Dynamic variables vary at based on cluster properties.  For example,
+ * one dynamic variable could represent the connection string used to connect to
+ * Kafka.
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.MINIMAL_CLASS,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "type")
-public interface Role {
-    /**
-     * Create the actions for this node.
-     *
-     * @param nodeName      The name of this node.
-     */
-    Collection<Action> createActions(String nodeName);
+public abstract class DynamicVariableProvider {
+    private final int priority;
+
+    protected DynamicVariableProvider(int priority) {
+        this.priority = priority;
+    }
 
     /**
-     * Get the dynamic variable providers implemented by this action.
+     * The priority of this dynamic variable provider-- higher priorities take
+     * precedence.
      */
-    default Map<String, DynamicVariableProvider> dynamicVariableProviders() {
-        return Collections.emptyMap();
+    final public int priority() {
+        return priority;
     }
-};
+
+    /**
+     * Calculate the value of this dynamic variable.
+     */
+    public abstract String calculate(CastleCluster cluster) throws Exception;
+}

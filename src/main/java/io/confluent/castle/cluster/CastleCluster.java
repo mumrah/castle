@@ -25,6 +25,7 @@ import io.confluent.castle.common.CastleLog;
 import io.confluent.castle.common.CastleUtil;
 import io.confluent.castle.common.JsonMerger;
 import io.confluent.castle.role.BrokerRole;
+import io.confluent.castle.role.DynamicVariableProviders;
 import io.confluent.castle.role.Role;
 import io.confluent.castle.role.UplinkRole;
 import io.confluent.castle.role.ZooKeeperRole;
@@ -54,6 +55,7 @@ public final class CastleCluster implements AutoCloseable {
     private final Map<String, CastleNode> nodes;
     private final CastleShutdownManager shutdownManager;
     private final Map<String, Role> originalRoles;
+    private final DynamicVariableProviders dynamicVariableProviders;
 
     public CastleCluster(CastleEnvironment env, CastleLog clusterLog,
             CastleShutdownManager shutdownManager, CastleClusterSpec spec) throws Exception {
@@ -76,6 +78,11 @@ public final class CastleCluster implements AutoCloseable {
         this.nodes = Collections.unmodifiableMap(nodes);
         this.shutdownManager = shutdownManager;
         this.originalRoles = spec.roles();
+        DynamicVariableProviders.Builder builder = new DynamicVariableProviders.Builder();
+        for (Role role : originalRoles.values()) {
+            builder.addAll(role.dynamicVariableProviders());
+        }
+        this.dynamicVariableProviders = builder.build();
     }
 
     private Uplink getNodeUplink(String nodeName, CastleNode node, Collection<Role> roles)  {
@@ -140,18 +147,6 @@ public final class CastleCluster implements AutoCloseable {
             index++;
         }
         return results;
-    }
-
-    public String getBootstrapServers() {
-        StringBuilder bld = new StringBuilder();
-        String prefix = "";
-        for (String nodeName : nodesWithRole(BrokerRole.class).values()) {
-            bld.append(prefix);
-            prefix = ",";
-            CastleNode node = nodes.get(nodeName);
-            bld.append(String.format("%s:9092", node.uplink().internalDns()));
-        }
-        return bld.toString();
     }
 
     public String getZooKeeperConnectString() {
@@ -264,6 +259,10 @@ public final class CastleCluster implements AutoCloseable {
 
     public CastleShutdownManager shutdownManager() {
         return shutdownManager;
+    }
+
+    public DynamicVariableProviders dynamicVariableProviders() {
+        return dynamicVariableProviders;
     }
 
     @Override

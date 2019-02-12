@@ -23,6 +23,8 @@ import io.confluent.castle.action.Action;
 import io.confluent.castle.action.BrokerStartAction;
 import io.confluent.castle.action.BrokerStatusAction;
 import io.confluent.castle.action.BrokerStopAction;
+import io.confluent.castle.cluster.CastleCluster;
+import io.confluent.castle.cluster.CastleNode;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,6 +38,8 @@ public class BrokerRole implements Role {
     private static final String DEFAULT_JVM_PERFORMANCE_OPTS = "-Xmx3g -Xms3g";
 
     private static final String DEFAULT_EXTERNAL_AUTH = "PLAINTEXT";
+
+    public static final int PORT = 9092;
 
     private final int initialDelayMs;
 
@@ -89,5 +93,23 @@ public class BrokerRole implements Role {
         actions.add(new BrokerStatusAction(nodeName, this));
         actions.add(new BrokerStopAction(nodeName, this));
         return actions;
+    }
+
+    @Override
+    public Map<String, DynamicVariableProvider> dynamicVariableProviders() {
+        return Collections.singletonMap("bootstrapServers", new DynamicVariableProvider(0) {
+            @Override
+            public String calculate(CastleCluster cluster) throws Exception {
+                StringBuilder bld = new StringBuilder();
+                String prefix = "";
+                for (String nodeName : cluster.nodesWithRole(BrokerRole.class).values()) {
+                    bld.append(prefix);
+                    prefix = ",";
+                    CastleNode node = cluster.nodes().get(nodeName);
+                    bld.append(String.format("%s:%d", node.uplink().internalDns(), PORT));
+                }
+                return bld.toString();
+            }
+        });
     }
 };
