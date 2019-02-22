@@ -213,6 +213,16 @@ public final class DockerCloud implements AutoCloseable {
         new NodeShellRunner(node, rmNet).run();
     }
 
+    public static void createNetwork(CastleNode node) throws Exception {
+        List<String> create = Arrays.asList(new String[]{
+            "docker", "network", "create", NETWORK});
+        if (new NodeShellRunner(node, create).run() == 0) {
+            node.log().printf("** Successfully created %s.%n", NETWORK);
+            return;
+        }
+        throw new RuntimeException("Failed to create " + NETWORK + ".");
+    }
+
     private static class NetworkCheck implements Callable<Void> {
         private final CastleNode node;
 
@@ -222,15 +232,21 @@ public final class DockerCloud implements AutoCloseable {
 
         @Override
         public Void call() throws Exception {
-            node.log().printf("** Removing any old version of %s.%n", NETWORK);
-            cleanupNetwork(node);
-            List<String> create = Arrays.asList(new String[] {
-                "docker", "network", "create", NETWORK});
-            if (new NodeShellRunner(node, create).run() == 0) {
-                node.log().printf("** Successfully created %s.%n", NETWORK);
-                return null;
+            List<String> inspect = Arrays.asList(new String[]{
+                "docker", "network", "inspect", "ducknet", "-f", "{{len .Containers}}"
+            });
+            StringBuilder output = new StringBuilder();
+            if (new NodeShellRunner(node, inspect).setCaptureOutput(output).run() == 0) {
+                int numContainers = Integer.parseInt(output.toString().trim());
+                if (numContainers > 0) {
+                    node.log().printf("** ducknet is running.%n");
+                    return null;
+                }
             }
-            throw new RuntimeException("Failed to create " + NETWORK + ".");
+            node.log().printf("** Removing the old version of %s.%n", NETWORK);
+            cleanupNetwork(node);
+            createNetwork(node);
+            return null;
         }
     }
 
