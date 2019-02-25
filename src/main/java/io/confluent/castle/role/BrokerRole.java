@@ -99,7 +99,7 @@ public class BrokerRole implements Role {
     public Map<String, DynamicVariableProvider> dynamicVariableProviders() {
         return Collections.singletonMap("bootstrapServers", new DynamicVariableProvider(0) {
             @Override
-            public String calculate(CastleCluster cluster) throws Exception {
+            public String calculate(CastleCluster cluster, CastleNode ndoe) throws Exception {
                 StringBuilder bld = new StringBuilder();
                 String prefix = "";
                 for (String nodeName : cluster.nodesWithRole(BrokerRole.class).values()) {

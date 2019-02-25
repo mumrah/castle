@@ -18,6 +18,7 @@
 package io.confluent.castle.role;
 
 import io.confluent.castle.cluster.CastleCluster;
+import io.confluent.castle.cluster.CastleNode;
 
 /**
  * Provides a value for a dynamic variable.
@@ -44,5 +45,6 @@ public abstract class DynamicVariableProvider {
     /**
      * Calculate the value of this dynamic variable.
      */
-    public abstract String calculate(CastleCluster cluster) throws Exception;
+    public abstract String calculate(CastleCluster cluster,
+                                     CastleNode node) throws Exception;
 }

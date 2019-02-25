@@ -47,7 +47,7 @@ public class TaskStartAction extends Action  {
     @Override
     public void call(final CastleCluster cluster, CastleNode node) throws Throwable {
         TrogdorClient client = new TrogdorClient(node);
-        for (Map.Entry<String, JsonNode> entry : createTransformedTaskSpecs(cluster).entrySet()) {
+        for (Map.Entry<String, JsonNode> entry : createTransformedTaskSpecs(cluster, node).entrySet()) {
             client.createTask(entry.getKey(), entry.getValue());
         }
         Map<String, JsonNode> tasks = client.getTasks();
@@ -64,9 +64,10 @@ public class TaskStartAction extends Action  {
      * @param cluster       The castle cluster.
      * @return              The transformed list of task specs.
      */
-    private Map<String, JsonNode> createTransformedTaskSpecs(CastleCluster cluster)
+    private Map<String, JsonNode> createTransformedTaskSpecs(CastleCluster cluster,
+                                                             CastleNode node)
             throws Exception {
-        Map<String, String> transforms = getTransforms(cluster);
+        Map<String, String> transforms = getTransforms(cluster, node);
         Map<String, JsonNode> transformedSpecs = new TreeMap<>();
         for (Map.Entry<String, JsonNode> entry : role.taskSpecs().entrySet()) {
             JsonNode outputNode = JsonTransformer.
@@ -76,11 +77,12 @@ public class TaskStartAction extends Action  {
         return transformedSpecs;
     }
 
-    private Map<String, String> getTransforms(CastleCluster cluster) throws Exception {
+    private Map<String, String> getTransforms(CastleCluster cluster,
+                                              CastleNode node) throws Exception {
         HashMap<String, String> transforms = new HashMap<>();
         for (Map.Entry<String, DynamicVariableProvider> entry :
                 cluster.dynamicVariableProviders().providers().entrySet()) {
-            transforms.put(entry.getKey(), entry.getValue().calculate(cluster));
+            transforms.put(entry.getKey(), entry.getValue().calculate(cluster, node));
         }
         return transforms;
     }
