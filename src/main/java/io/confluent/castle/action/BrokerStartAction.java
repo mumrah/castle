@@ -130,8 +130,6 @@ public final class BrokerStartAction extends Action {
             osw.write(String.format("listeners=%s://:%d%n", role.externalAuth(), BrokerRole.PORT));
             osw.write(String.format("advertised.listeners=%s://:%d%n", role.externalAuth(), BrokerRole.PORT));
             osw.write(String.format("inter.broker.listener.name=%s%n", role.externalAuth()));
-            osw.write(String.format("advertised.host.name=%s%n",
-                node.uplink().internalDns()));
             osw.write(String.format("log.dirs=%s%n", KAFKA_OPLOGS));
             osw.write(String.format("zookeeper.connect=%s%n", cluster.getZooKeeperConnectString()));
             for (Map.Entry<String, String> entry : effectiveConf.entrySet()) {
