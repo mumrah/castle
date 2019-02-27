@@ -20,11 +20,9 @@ package io.confluent.castle.action;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.castle.cluster.CastleCluster;
 import io.confluent.castle.cluster.CastleNode;
-import io.confluent.castle.common.JsonTransformer;
-import io.confluent.castle.role.DynamicVariableProvider;
+import io.confluent.castle.common.DynamicVariableExpander;
 import io.confluent.castle.role.TaskRole;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -65,25 +63,13 @@ public class TaskStartAction extends Action  {
      * @return              The transformed list of task specs.
      */
     private Map<String, JsonNode> createTransformedTaskSpecs(CastleCluster cluster,
-                                                             CastleNode node)
-            throws Exception {
-        Map<String, String> transforms = getTransforms(cluster, node);
+                                                             CastleNode node) throws Exception {
         Map<String, JsonNode> transformedSpecs = new TreeMap<>();
+        DynamicVariableExpander expander = new DynamicVariableExpander(cluster, node);
         for (Map.Entry<String, JsonNode> entry : role.taskSpecs().entrySet()) {
-            JsonNode outputNode = JsonTransformer.
-                transform(entry.getValue(), new JsonTransformer.MapSubstituter(transforms));
+            JsonNode outputNode = expander.expand(entry.getValue());
             transformedSpecs.put(entry.getKey(), outputNode);
         }
         return transformedSpecs;
-    }
-
-    private Map<String, String> getTransforms(CastleCluster cluster,
-                                              CastleNode node) throws Exception {
-        HashMap<String, String> transforms = new HashMap<>();
-        for (Map.Entry<String, DynamicVariableProvider> entry :
-                cluster.dynamicVariableProviders().providers().entrySet()) {
-            transforms.put(entry.getKey(), entry.getValue().calculate(cluster, node));
-        }
-        return transforms;
     }
 };

@@ -25,6 +25,7 @@ import io.confluent.castle.action.BrokerStatusAction;
 import io.confluent.castle.action.BrokerStopAction;
 import io.confluent.castle.cluster.CastleCluster;
 import io.confluent.castle.cluster.CastleNode;
+import io.confluent.castle.common.DynamicVariableProvider;
 
 import java.util.ArrayList;
 import java.util.Collection;

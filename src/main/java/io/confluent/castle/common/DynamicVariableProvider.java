@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.confluent.castle.role;
+package io.confluent.castle.common;
 
 import io.confluent.castle.cluster.CastleCluster;
 import io.confluent.castle.cluster.CastleNode;

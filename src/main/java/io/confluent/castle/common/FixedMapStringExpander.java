@@ -15,36 +15,27 @@
  * limitations under the License.
  */
 
-package io.confluent.castle.role;
+package io.confluent.castle.common;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-import io.confluent.castle.action.Action;
-import io.confluent.castle.common.DynamicVariableProvider;
-
-import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * A role which a particular castle cluster node can have.
- *
- * A cluster node may have multiple roles.
+ * A StringExpander that uses a fixed map.
  */
-@JsonTypeInfo(use = JsonTypeInfo.Id.MINIMAL_CLASS,
-    include = JsonTypeInfo.As.PROPERTY,
-    property = "type")
-public interface Role {
-    /**
-     * Create the actions for this node.
-     *
-     * @param nodeName      The name of this node.
-     */
-    Collection<Action> createActions(String nodeName);
+public class FixedMapStringExpander implements StringExpander {
+    private final Map<String, String> map;
 
-    /**
-     * Get the dynamic variable providers implemented by this action.
-     */
-    default Map<String, DynamicVariableProvider> dynamicVariableProviders() {
-        return Collections.emptyMap();
+    FixedMapStringExpander(Map<String, String> map) {
+        this.map = Collections.unmodifiableMap(new HashMap<>(map));
     }
-};
+
+    @Override
+    public String lookupVariable(String key) {
+        return map.get(key);
+    }
+}

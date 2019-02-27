@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package io.confluent.castle.role;
+package io.confluent.castle.common;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,20 +34,22 @@ public class DynamicVariableProviders {
             this.providers = new HashMap<>();
         }
 
-        public void addAll(Map<String, DynamicVariableProvider> newProviders) {
+        public Builder addAll(Map<String, DynamicVariableProvider> newProviders) {
             for (Map.Entry<String, DynamicVariableProvider> entry : newProviders.entrySet()) {
                 add(entry.getKey(), entry.getValue());
             }
+            return this;
         }
 
-        public void add(String name, DynamicVariableProvider provider) {
+        public Builder add(String name, DynamicVariableProvider provider) {
             DynamicVariableProvider curProvider = this.providers.get(name);
             if (curProvider != null) {
                 if (curProvider.priority() > provider.priority()) {
-                    return;
+                    return this;
                 }
             }
             this.providers.put(name, provider);
+            return this;
         }
 
         public DynamicVariableProviders build() {
@@ -62,7 +64,7 @@ public class DynamicVariableProviders {
     public DynamicVariableProvider get(String name) {
         DynamicVariableProvider provider = providers.get(name);
         if (provider == null) {
-            throw new RuntimeException("Unknown dynamic variable '" + name + "'");
+            return null;
         }
         return provider;
     }

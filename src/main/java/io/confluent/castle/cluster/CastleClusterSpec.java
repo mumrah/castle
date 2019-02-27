@@ -22,6 +22,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.confluent.castle.common.CastleUtil;
 import io.confluent.castle.common.JsonMerger;
+import io.confluent.castle.common.RangeExpressionExpander;
 import io.confluent.castle.common.StringExpander;
 import io.confluent.castle.role.Role;
 import io.confluent.castle.tool.CastleTool;
@@ -47,7 +48,7 @@ public class CastleClusterSpec {
         } else {
             Map<String, CastleNodeSpec> newNodes = new HashMap<>();
             for (Map.Entry<String, CastleNodeSpec> entry: nodes.entrySet()) {
-                for (String nodeName : StringExpander.expand(entry.getKey())) {
+                for (String nodeName : RangeExpressionExpander.expand(entry.getKey())) {
                     CastleNodeSpec nodeCopy = CastleTool.JSON_SERDE.readValue(
                         CastleTool.JSON_SERDE.writeValueAsBytes(entry.getValue()),
                         CastleNodeSpec.class);

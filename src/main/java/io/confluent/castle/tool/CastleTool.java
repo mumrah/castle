@@ -25,10 +25,10 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import io.confluent.castle.cluster.CastleNodeSpec;
 import io.confluent.castle.common.CastleUtil;
 import io.confluent.castle.common.JsonConfigFile;
+import io.confluent.castle.common.StringExpander;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
-import io.confluent.castle.common.JsonTransformer;
 import io.confluent.castle.action.ActionRegistry;
 import io.confluent.castle.action.ActionScheduler;
 import io.confluent.castle.cluster.CastleCluster;
@@ -113,9 +113,9 @@ public final class CastleTool {
         return defaultValue;
     }
 
-    public static class CastleSubstituter implements JsonTransformer.Substituter {
+    public static class EnvironmentVariableStringExpander implements StringExpander {
         @Override
-        public String substitute(String key) {
+        public String lookupVariable(String key) {
             if (!key.startsWith(CASTLE_PREFIX)) {
                 return null;
             }
@@ -130,8 +130,8 @@ public final class CastleTool {
 
     private static CastleClusterSpec readClusterSpec(String clusterInputPath) throws Throwable {
         JsonNode confNode = new JsonConfigFile(clusterInputPath).jsonNode();
-        JsonNode transofmredConfNode = JsonTransformer.transform(confNode, new CastleSubstituter());
-        return CastleTool.JSON_SERDE.treeToValue(transofmredConfNode, CastleClusterSpec.class);
+        JsonNode expandedConfNode = new EnvironmentVariableStringExpander().expand(confNode);
+        return CastleTool.JSON_SERDE.treeToValue(expandedConfNode, CastleClusterSpec.class);
     }
 
     private static void mergerClusterConf(String newPath, String oldPath) throws Throwable {

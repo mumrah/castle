@@ -17,40 +17,100 @@
 
 package io.confluent.castle.common;
 
-import java.util.HashSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
+
+import java.util.Iterator;
+import java.util.Map;
 
 /**
- * Utilities for expanding strings that have range expressions in them.
- *
- * For example, 'foo[1-3]' would be expaneded to foo1, foo2, foo3.
- * Strings that have no range expressions will not be expanded.
+ * A utility class for substituting variable expressions inside a string.  The
+ * variable expressions must be prefixed by a percent sign and enclosed in
+ * brackets.  For example, this object will expand %{foo} to the value of the
+ * "foo" variable.
  */
-public class StringExpander {
-    private final static Pattern NUMERIC_RANGE_PATTERN =
-        Pattern.compile("(.*?)\\[([0-9]*)\\-([0-9]*)\\](.*?)");
+public interface StringExpander {
+    String lookupVariable(String key) throws Exception;
 
-    public static HashSet<String> expand(String val) {
-        HashSet<String> set = new HashSet<>();
-        Matcher matcher = NUMERIC_RANGE_PATTERN.matcher(val);
-        if (!matcher.matches()) {
-            set.add(val);
-            return set;
+    default String expand(String input) throws Exception {
+        StringBuilder output = new StringBuilder();
+        char delimiter = '\0';
+        String variableName = "";
+        for (int i = 0; i < input.length(); i++) {
+            char c = input.charAt(i);
+            switch (delimiter) {
+                case '\\':
+                    output.append(c);
+                    delimiter = '\0';
+                    break;
+                case '%':
+                    if (c != '{') {
+                        output.append('%').append(c);
+                        delimiter = '\0';
+                    } else {
+                        delimiter = '{';
+                    }
+                    break;
+                case '{':
+                    if (c == '}') {
+                        String value = lookupVariable(variableName);
+                        if (value == null) {
+                            output.append("%{" + variableName + "}");
+                        } else {
+                            output.append(value);
+                        }
+                        variableName = "";
+                        delimiter = '\0';
+                    } else {
+                        variableName = variableName + c;
+                    }
+                    break;
+                default:
+                    switch (c) {
+                        case '\\':
+                            delimiter = '\\';
+                            break;
+                        case '%':
+                            delimiter = '%';
+                            break;
+                        default:
+                            output.append(c);
+                            break;
+                    }
+                    break;
+            }
         }
-        String prequel = matcher.group(1);
-        String rangeStart = matcher.group(2);
-        String rangeEnd = matcher.group(3);
-        String epilog = matcher.group(4);
-        int rangeStartInt = Integer.parseInt(rangeStart);
-        int rangeEndInt = Integer.parseInt(rangeEnd);
-        if (rangeEndInt < rangeStartInt) {
-            throw new RuntimeException("Invalid range: start " + rangeStartInt +
-                    " is higher than end " + rangeEndInt);
+        return output.toString();
+    }
+
+    /**
+     * Recursively expands all strings inside a JSON node.
+     */
+    default JsonNode expand(JsonNode input) throws Exception {
+        switch (input.getNodeType()) {
+            case STRING:
+                return TextNode.valueOf(expand(input.textValue()));
+            case ARRAY:
+                ArrayNode arrayResult = new ArrayNode(JsonNodeFactory.instance);
+                int index = 0;
+                for (Iterator<JsonNode> iter = input.elements(); iter.hasNext(); ) {
+                    JsonNode child = iter.next();
+                    arrayResult.insert(index, expand(child));
+                    index++;
+                }
+                return arrayResult;
+            case OBJECT:
+                ObjectNode objectResult = new ObjectNode(JsonNodeFactory.instance);
+                for (Iterator<Map.Entry<String, JsonNode>> iter = input.fields(); iter.hasNext(); ) {
+                    Map.Entry<String, JsonNode> entry = iter.next();
+                    objectResult.set(expand(entry.getKey()), expand(entry.getValue()));
+                }
+                return objectResult;
+            default:
+                return input.deepCopy();
         }
-        for (int i = rangeStartInt; i <= rangeEndInt; i++) {
-            set.add(String.format("%s%d%s", prequel, i, epilog));
-        }
-        return set;
     }
 }

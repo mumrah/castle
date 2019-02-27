@@ -17,13 +17,15 @@
 
 package io.confluent.castle.common;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+import io.confluent.castle.tool.CastleTool;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
+import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 
@@ -31,32 +33,83 @@ public class StringExpanderTest {
     @Rule
     final public Timeout globalTimeout = Timeout.millis(120000);
 
+    private final static FixedMapStringExpander EXPANDER =
+        new FixedMapStringExpander(new HashMap<String, String>() {{
+                put("foo", "bar");
+                put("baz", "quux");
+                put("blah", "");
+            }});
+
     @Test
-    public void testNoExpansionNeeded() throws Exception {
-        assertEquals(Collections.singleton("foo"), StringExpander.expand("foo"));
-        assertEquals(Collections.singleton("bar"), StringExpander.expand("bar"));
-        assertEquals(Collections.singleton(""), StringExpander.expand(""));
+    public void testTransformString() throws Exception {
+        assertEquals("", EXPANDER.expand(""));
+        assertEquals("foo", EXPANDER.expand("foo"));
+        assertEquals("bar", EXPANDER.expand("%{foo}"));
+        assertEquals("%foo", EXPANDER.expand("%foo"));
+        assertEquals("%{foo}", EXPANDER.expand("\\%{foo}"));
+        assertEquals("barquux", EXPANDER.expand("%{foo}%{baz}%{blah}"));
+        assertEquals("", EXPANDER.expand("%{blah}"));
+        assertEquals("", EXPANDER.expand("%{foo"));
+    }
+
+    private static final class TestNestedJsonObject {
+        private final String foo;
+        private final int bar;
+
+        @JsonCreator
+        public TestNestedJsonObject(@JsonProperty("foo") String foo,
+                                    @JsonProperty("bar") int bar) {
+            this.foo = foo;
+            this.bar = bar;
+        }
+
+        @JsonProperty
+        public String foo() {
+            return foo;
+        }
+
+        @JsonProperty
+        public int bar() {
+            return bar;
+        }
+    }
+
+    private static final class TestJsonObject {
+        private final TestNestedJsonObject[] foos;
+        private final long quux;
+
+        @JsonCreator
+        public TestJsonObject(@JsonProperty("foos") TestNestedJsonObject[] foos,
+                              @JsonProperty("quux") long quux) {
+            this.foos = foos;
+            this.quux = quux;
+        }
+
+        @JsonProperty
+        public TestNestedJsonObject[] foos() {
+            return foos;
+        }
+
+        @JsonProperty
+        public long quux() {
+            return quux;
+        }
     }
 
     @Test
-    public void testExpansions() throws Exception {
-        HashSet<String> expected1 = new HashSet<>(Arrays.asList(
-            "foo1",
-            "foo2",
-            "foo3"
-        ));
-        assertEquals(expected1, StringExpander.expand("foo[1-3]"));
-
-        HashSet<String> expected2 = new HashSet<>(Arrays.asList(
-            "foo bar baz 0"
-        ));
-        assertEquals(expected2, StringExpander.expand("foo bar baz [0-0]"));
-
-        HashSet<String> expected3 = new HashSet<>(Arrays.asList(
-            "[[ wow50 ]]",
-            "[[ wow51 ]]",
-            "[[ wow52 ]]"
-        ));
-        assertEquals(expected3, StringExpander.expand("[[ wow[50-52] ]]"));
+    public void testExpandJson() throws Exception {
+        TestNestedJsonObject[] foos = new TestNestedJsonObject[] {
+            new TestNestedJsonObject("%{foo}", 123),
+            new TestNestedJsonObject("%foo", 456)
+        };
+        TestJsonObject inputObject = new TestJsonObject(foos, 123456);
+        JsonNode inputNode = CastleTool.JSON_SERDE.valueToTree(inputObject);
+        JsonNode outputNode = EXPANDER.expand(inputNode);
+        TestJsonObject outputObject = CastleTool.JSON_SERDE.treeToValue(outputNode, TestJsonObject.class);
+        assertEquals(inputObject.quux, outputObject.quux);
+        assertEquals("bar", outputObject.foos[0].foo);
+        assertEquals(inputObject.foos[0].bar, outputObject.foos[0].bar);
+        assertEquals(inputObject.foos[1].foo, outputObject.foos[1].foo);
+        assertEquals(inputObject.foos[1].bar, outputObject.foos[1].bar);
     }
-}
+};
