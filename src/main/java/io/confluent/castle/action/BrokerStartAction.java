@@ -94,6 +94,7 @@ public final class BrokerStartAction extends Action {
             "JMX_PORT=9192",
             "KAFKA_JVM_PERFORMANCE_OPTS='" + role.jvmOptions() + "'",
             "KAFKA_LOG4J_OPTS='-Dlog4j.configuration=file:" + ActionPaths.KAFKA_BROKER_LOG4J + "' ",
+            "LOG_DIR=\"" + KAFKA_LOGS + "\"",
             ActionPaths.KAFKA_START_SCRIPT, ActionPaths.KAFKA_BROKER_PROPERTIES,
             ">" + ActionPaths.KAFKA_LOGS + "/stdout-stderr.txt", "2>&1", "</dev/null", "&"
         };

@@ -78,7 +78,8 @@ public final class JmxDumperStartAction extends Action {
     }
 
     public static String[] createRunDaemonCommandLine() {
-        return new String[]{"-n", "--", "nohup",
+        return new String[]{"-n", "--", "nohup", "env",
+            "LOG_DIR=\"" + JMX_DUMPER_LOGS + "\"",
             JMX_DUMPER_START_SCRIPT, JMX_DUMPER_PROPERTIES,
             "&>" + JMX_DUMPER_LOGS + "/stdout-stderr.txt", "</dev/null", "&"
         };

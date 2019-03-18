@@ -89,6 +89,7 @@ public class TrogdorStartAction extends Action  {
         return new String[] {"-n", "--", "nohup", "env",
             String.format("KAFKA_LOG4J_OPTS=\"-Dlog4j.configuration=file:%s\"",
                 daemonType.log4jConfPath()),
+            "LOG_DIR=\"" + daemonType.logDir() + "\"",
             TROGDOR_START_SCRIPT, daemonType.name(), "--" + daemonType.name() + ".config",
             daemonType.propertiesPath(), "--node-name", nodeName,
             ">" + daemonType.logDir() + "/stdout-stderr.txt", "2>&1", "</dev/null", "&"
