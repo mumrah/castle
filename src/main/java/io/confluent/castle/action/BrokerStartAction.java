@@ -20,6 +20,7 @@ package io.confluent.castle.action;
 import io.confluent.castle.cluster.CastleCluster;
 import io.confluent.castle.cluster.CastleNode;
 import io.confluent.castle.common.CastleUtil;
+import io.confluent.castle.common.DynamicVariableExpander;
 import io.confluent.castle.role.BrokerRole;
 
 import java.io.File;
@@ -60,7 +61,8 @@ public final class BrokerStartAction extends Action {
     public void call(final CastleCluster cluster, final CastleNode node) throws Throwable {
         File configFile = null, log4jFile = null;
         try {
-            configFile = writeBrokerConfig(cluster, node);
+            DynamicVariableExpander expander = new DynamicVariableExpander(cluster, node);
+            configFile = writeBrokerConfig(expander, cluster, node);
             log4jFile = writeBrokerLog4j(cluster, node);
             CastleUtil.killJavaProcess(cluster, node, KAFKA_CLASS_NAME, true);
             node.uplink().command().args(createSetupPathsCommandLine()).mustRun();
@@ -116,12 +118,15 @@ public final class BrokerStartAction extends Action {
         return defaultConf;
     }
 
-    private File writeBrokerConfig(CastleCluster cluster, CastleNode node) throws IOException {
+    private File writeBrokerConfig(DynamicVariableExpander expander,
+                                   CastleCluster cluster,
+                                   CastleNode node) throws Exception {
         File file = null;
         FileOutputStream fos = null;
         OutputStreamWriter osw = null;
         boolean success = false;
-        Map<String, String> effectiveConf = CastleUtil.mergeConfig(role.conf(), getDefaultConf());
+        Map<String, String> effectiveConf =
+            expander.expand(CastleUtil.mergeConfig(role.conf(), getDefaultConf()));
         try {
             file = new File(cluster.env().workingDirectory(), String.format("broker-%d.properties",
                 node.nodeIndex()));
