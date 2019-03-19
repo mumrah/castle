@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -112,5 +113,16 @@ public interface StringExpander {
             default:
                 return input.deepCopy();
         }
+    }
+
+    /**
+     * Returns a copy of a map with all the keys and values expanded.
+     */
+    default Map<String, String> expand(Map<String, String> input) throws Exception {
+        Map<String, String> newMap = new HashMap<>();
+        for (Map.Entry<String, String> entry : input.entrySet()) {
+            newMap.put(expand(entry.getKey()), expand(entry.getValue()));
+        }
+        return newMap;
     }
 }

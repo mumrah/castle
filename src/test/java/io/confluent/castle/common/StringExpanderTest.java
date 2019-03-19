@@ -26,6 +26,7 @@ import org.junit.rules.Timeout;
 import org.junit.Test;
 
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 
@@ -111,5 +112,20 @@ public class StringExpanderTest {
         assertEquals(inputObject.foos[0].bar, outputObject.foos[0].bar);
         assertEquals(inputObject.foos[1].foo, outputObject.foos[1].foo);
         assertEquals(inputObject.foos[1].bar, outputObject.foos[1].bar);
+    }
+
+    @Test
+    public void testExpandMap() throws Exception {
+        HashMap<String, String> inputMap = new HashMap<>();
+        inputMap.put("foo", "%{foo}");
+        inputMap.put("foo2", "%{baz}");
+        inputMap.put("%{foo}", "barValue");
+        inputMap.put("abc", "123");
+        Map<String, String> outputMap = EXPANDER.expand(inputMap);
+        assertEquals("bar", outputMap.get("foo"));
+        assertEquals("quux", outputMap.get("foo2"));
+        assertEquals("barValue", outputMap.get("bar"));
+        assertEquals("123", outputMap.get("abc"));
+        assertEquals(4, outputMap.size());
     }
 };
