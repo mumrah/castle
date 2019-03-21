@@ -18,12 +18,13 @@
 package io.confluent.castle.common;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.confluent.castle.tool.CastleTool;
 
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.function.Consumer;
+
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 
 /**
  * Implements a JSON configuration file which supports bash-style comment lines.
@@ -82,6 +83,6 @@ public class JsonConfigFile {
     }
 
     public JsonNode jsonNode() throws Exception {
-        return CastleTool.JSON_SERDE.readTree(cleanedConfigString);
+        return JSON_SERDE.readTree(cleanedConfigString);
     }
 };

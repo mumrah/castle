@@ -22,12 +22,13 @@ import io.confluent.castle.cluster.CastleNode;
 import io.confluent.castle.role.AwsNodeRole;
 import io.confluent.castle.tool.CastleReturnCode;
 import io.confluent.castle.tool.CastleShutdownHook;
-import io.confluent.castle.tool.CastleTool;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 
 /**
  * Initiates a new AWS node.
@@ -63,7 +64,7 @@ public final class AwsInitAction extends Action {
         node.uplink().startup();
 
         // Write out the new cluster file.
-        CastleTool.JSON_SERDE.writeValue(new File(cluster.env().clusterOutputPath()), cluster.toSpec());
+        JSON_SERDE.writeValue(new File(cluster.env().clusterOutputPath()), cluster.toSpec());
     }
 
     /**
@@ -82,7 +83,7 @@ public final class AwsInitAction extends Action {
             if (returnCode == CastleReturnCode.SUCCESS) {
                 String path = cluster.env().clusterOutputPath();
                 try {
-                    CastleTool.JSON_SERDE.writeValue(new File(path), cluster.toSpec());
+                    JSON_SERDE.writeValue(new File(path), cluster.toSpec());
                     cluster.clusterLog().printf("*** Wrote new cluster file to %s%n", path);
                 } catch (Throwable e) {
                     cluster.clusterLog().printf("*** Failed to write cluster file to %s%n", path, e);

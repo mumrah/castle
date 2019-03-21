@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 import static net.sourceforge.argparse4j.impl.Arguments.store;
 import static net.sourceforge.argparse4j.impl.Arguments.storeTrue;
 
@@ -52,16 +53,6 @@ import static net.sourceforge.argparse4j.impl.Arguments.storeTrue;
  * The castle command.
  */
 public final class CastleTool {
-    public static final ObjectMapper JSON_SERDE;
-
-    static {
-        JSON_SERDE = new ObjectMapper();
-        JSON_SERDE.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
-        JSON_SERDE.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
-        JSON_SERDE.enable(SerializationFeature.INDENT_OUTPUT);
-        JSON_SERDE.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-    }
-
     private static final String CASTLE_CLUSTER_INPUT_PATH = "CASTLE_CLUSTER_INPUT_PATH";
     private static final String CASTLE_TARGETS = "CASTLE_TARGETS";
     private static final String CASTLE_WORKING_DIRECTORY = "CASTLE_WORKING_DIRECTORY";
@@ -131,7 +122,7 @@ public final class CastleTool {
     private static CastleClusterSpec readClusterSpec(String clusterInputPath) throws Throwable {
         JsonNode confNode = new JsonConfigFile(clusterInputPath).jsonNode();
         JsonNode expandedConfNode = new EnvironmentVariableStringExpander().expand(confNode);
-        return CastleTool.JSON_SERDE.treeToValue(expandedConfNode, CastleClusterSpec.class);
+        return JSON_SERDE.treeToValue(expandedConfNode, CastleClusterSpec.class);
     }
 
     private static void mergerClusterConf(String newPath, String oldPath) throws Throwable {

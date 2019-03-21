@@ -15,28 +15,24 @@
  * limitations under the License.
  */
 
-package io.confluent.castle.tool;
+package io.confluent.castle.common;
 
-import io.confluent.castle.cluster.CastleCluster;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
 
-import java.io.File;
+/**
+ * Utilities for working with JSON.
+ */
+public final class JsonUtil {
+    public static final ObjectMapper JSON_SERDE;
 
-import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
-
-public class CastleWriteClusterFileHook extends CastleShutdownHook {
-    private final CastleCluster cluster;
-
-    public CastleWriteClusterFileHook(CastleCluster cluster) {
-        super("CastleWriteClusterFileHook");
-        this.cluster = cluster;
+    static {
+        JSON_SERDE = new ObjectMapper();
+        JSON_SERDE.configure(SerializationFeature.FAIL_ON_EMPTY_BEANS, false);
+        JSON_SERDE.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+        JSON_SERDE.enable(SerializationFeature.INDENT_OUTPUT);
+        JSON_SERDE.setSerializationInclusion(JsonInclude.Include.NON_ABSENT);
     }
-
-    @Override
-    public void run(CastleReturnCode returnCode) throws Throwable {
-        if (returnCode == CastleReturnCode.SUCCESS) {
-            String path = cluster.env().clusterOutputPath();
-            JSON_SERDE.writeValue(new File(path), cluster.toSpec());
-            cluster.clusterLog().printf("*** Wrote new cluster file to %s%n", path);
-        }
-    }
-}
+};

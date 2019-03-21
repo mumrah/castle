@@ -22,7 +22,6 @@ import io.confluent.castle.cluster.CastleNode;
 import io.confluent.castle.common.CastleUtil;
 import io.confluent.castle.jmx.JmxDumpersConfig;
 import io.confluent.castle.role.JmxDumperRole;
-import io.confluent.castle.tool.CastleTool;
 
 import java.io.File;
 import java.io.IOException;
@@ -31,6 +30,7 @@ import static io.confluent.castle.action.ActionPaths.JMX_DUMPER_LOGS;
 import static io.confluent.castle.action.ActionPaths.JMX_DUMPER_PROPERTIES;
 import static io.confluent.castle.action.ActionPaths.JMX_DUMPER_ROOT;
 import static io.confluent.castle.action.ActionPaths.JMX_DUMPER_START_SCRIPT;
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 
 /**
  * Starts the JMXDumper tool.
@@ -73,7 +73,7 @@ public final class JmxDumperStartAction extends Action {
     private File writeJmxDumperConf(CastleCluster cluster, CastleNode node) throws IOException {
         File file = new File(cluster.env().workingDirectory(),
                 String.format("jmx-dumper-%d.conf", node.nodeIndex()));
-        CastleTool.JSON_SERDE.writeValue(file, conf);
+        JSON_SERDE.writeValue(file, conf);
         return file;
     }
 

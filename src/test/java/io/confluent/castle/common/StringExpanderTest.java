@@ -20,7 +20,6 @@ package io.confluent.castle.common;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.confluent.castle.tool.CastleTool;
 import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.junit.Test;
@@ -28,6 +27,7 @@ import org.junit.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 import static org.junit.Assert.assertEquals;
 
 public class StringExpanderTest {
@@ -104,9 +104,9 @@ public class StringExpanderTest {
             new TestNestedJsonObject("%foo", 456)
         };
         TestJsonObject inputObject = new TestJsonObject(foos, 123456);
-        JsonNode inputNode = CastleTool.JSON_SERDE.valueToTree(inputObject);
+        JsonNode inputNode = JSON_SERDE.valueToTree(inputObject);
         JsonNode outputNode = EXPANDER.expand(inputNode);
-        TestJsonObject outputObject = CastleTool.JSON_SERDE.treeToValue(outputNode, TestJsonObject.class);
+        TestJsonObject outputObject = JSON_SERDE.treeToValue(outputNode, TestJsonObject.class);
         assertEquals(inputObject.quux, outputObject.quux);
         assertEquals("bar", outputObject.foos[0].foo);
         assertEquals(inputObject.foos[0].bar, outputObject.foos[0].bar);

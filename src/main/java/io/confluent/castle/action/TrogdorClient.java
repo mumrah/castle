@@ -24,7 +24,6 @@ import io.confluent.castle.cluster.CastleNode;
 import io.confluent.castle.command.Command;
 import io.confluent.castle.command.CommandResultException;
 import io.confluent.castle.role.TrogdorCoordinatorRole;
-import io.confluent.castle.tool.CastleTool;
 
 import java.io.IOException;
 import java.util.ArrayDeque;
@@ -36,6 +35,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 
 /**
  * A Trogdor client which uses curl to send JSON requests.
@@ -67,7 +68,7 @@ public class TrogdorClient {
             captureOutput(stringBuilder).
             setCaptureStderr(false);
         if (input != null) {
-            command.setStdin(CastleTool.JSON_SERDE.writeValueAsBytes(input));
+            command.setStdin(JSON_SERDE.writeValueAsBytes(input));
         }
         command.mustRun();
 
@@ -90,7 +91,7 @@ public class TrogdorClient {
         }
         String json = output.substring(0, atIndex);
         try {
-            return CastleTool.JSON_SERDE.readTree(json);
+            return JSON_SERDE.readTree(json);
         } catch (IOException e) {
             throw new RuntimeException(String.format("%s: JSON parse error when " +
                 "handling the return value '%s' from %s", node.nodeName(), json,

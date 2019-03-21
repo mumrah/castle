@@ -25,12 +25,13 @@ import io.confluent.castle.common.JsonMerger;
 import io.confluent.castle.common.RangeExpressionExpander;
 import io.confluent.castle.common.StringExpander;
 import io.confluent.castle.role.Role;
-import io.confluent.castle.tool.CastleTool;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
+
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 
 public class CastleClusterSpec {
     private final CastleClusterConf conf;
@@ -49,8 +50,8 @@ public class CastleClusterSpec {
             Map<String, CastleNodeSpec> newNodes = new HashMap<>();
             for (Map.Entry<String, CastleNodeSpec> entry: nodes.entrySet()) {
                 for (String nodeName : RangeExpressionExpander.expand(entry.getKey())) {
-                    CastleNodeSpec nodeCopy = CastleTool.JSON_SERDE.readValue(
-                        CastleTool.JSON_SERDE.writeValueAsBytes(entry.getValue()),
+                    CastleNodeSpec nodeCopy = JSON_SERDE.readValue(
+                        JSON_SERDE.writeValueAsBytes(entry.getValue()),
                         CastleNodeSpec.class);
                     newNodes.put(nodeName, nodeCopy);
                 }
@@ -95,11 +96,11 @@ public class CastleClusterSpec {
                         ", no role named " + roleName + " found.  Role names are " +
                         CastleUtil.join(node.roleNames(), ", "));
                 }
-                JsonNode originalRole = CastleTool.JSON_SERDE.valueToTree(role);
+                JsonNode originalRole = JSON_SERDE.valueToTree(role);
                 JsonNode deltaRole = node.rolePatches().get(roleName);
                 JsonNode nodeRole = JsonMerger.merge(originalRole, deltaRole);
                 roleMap.put(role.getClass(),
-                    CastleTool.JSON_SERDE.treeToValue(nodeRole, Role.class));
+                    JSON_SERDE.treeToValue(nodeRole, Role.class));
             }
         }
         return nodesToRoles;

@@ -26,6 +26,7 @@ import org.junit.Rule;
 import org.junit.rules.Timeout;
 import org.junit.Test;
 
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 import static org.junit.Assert.assertEquals;
 
 public class JsonMergerTest {
@@ -87,5 +88,24 @@ public class JsonMergerTest {
         ObjectNode b = new ObjectNode(JsonNodeFactory.instance);
         b.set("foo", new TextNode("abcdef"));
         assertEquals(null, JsonMerger.delta(b, a));
+    }
+
+    @Test
+    public void testMergeWithEmptyString() throws Exception {
+        ObjectNode a = new ObjectNode(JsonNodeFactory.instance);
+        a.set("mt", new TextNode(""));
+        a.set("foo", new TextNode("bar"));
+        ObjectNode b = new ObjectNode(JsonNodeFactory.instance);
+        b.set("foo", new TextNode("baz"));
+        b.set("mt2", new TextNode(""));
+        JsonNode c = JsonMerger.merge(a, b);
+        assertEquals(new TextNode(""), c.get("mt"));
+        assertEquals(new TextNode("baz"), c.get("foo"));
+        assertEquals(new TextNode(""), c.get("mt2"));
+        JsonNode d = JSON_SERDE.
+            readTree(JSON_SERDE.writeValueAsString(c));
+        assertEquals(new TextNode(""), d.get("mt"));
+        assertEquals(new TextNode("baz"), d.get("foo"));
+        assertEquals(new TextNode(""), d.get("mt2"));
     }
 };

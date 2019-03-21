@@ -25,13 +25,11 @@ import io.confluent.castle.common.CastleLog;
 import io.confluent.castle.common.CastleUtil;
 import io.confluent.castle.common.DynamicVariableProviders;
 import io.confluent.castle.common.JsonMerger;
-import io.confluent.castle.role.BrokerRole;
 import io.confluent.castle.role.Role;
 import io.confluent.castle.role.UplinkRole;
 import io.confluent.castle.role.ZooKeeperRole;
 import io.confluent.castle.tool.CastleEnvironment;
 import io.confluent.castle.tool.CastleShutdownManager;
-import io.confluent.castle.tool.CastleTool;
 import io.confluent.castle.uplink.Uplink;
 
 import java.util.ArrayList;
@@ -43,6 +41,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.TreeSet;
+
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 
 /**
  * The CastleCluster.
@@ -223,8 +223,8 @@ public final class CastleCluster implements AutoCloseable {
                 if (nodeRole != null) {
                     nodeRoleNames.add(roleName);
                     JsonNode delta = JsonMerger.delta(
-                        CastleTool.JSON_SERDE.valueToTree(originalRole),
-                        CastleTool.JSON_SERDE.valueToTree(nodeRole));
+                        JSON_SERDE.valueToTree(originalRole),
+                        JSON_SERDE.valueToTree(nodeRole));
                     if (delta != null) {
                         nodeRolePatches.put(roleName, delta);
                     }

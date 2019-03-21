@@ -20,7 +20,8 @@ package io.confluent.castle.cloud;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import io.confluent.castle.tool.CastleTool;
+
+import static io.confluent.castle.common.JsonUtil.JSON_SERDE;
 
 /**
  * The settings to use when creating an EC2 client.
@@ -57,7 +58,7 @@ public final class Ec2Settings {
     @Override
     public String toString() {
         try {
-            return CastleTool.JSON_SERDE.writeValueAsString(this);
+            return JSON_SERDE.writeValueAsString(this);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
         }
