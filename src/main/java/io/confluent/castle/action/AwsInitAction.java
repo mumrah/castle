@@ -95,6 +95,7 @@ public final class AwsInitAction extends Action {
             }
         }
 
+        @SuppressWarnings("rawtypes")
         private synchronized void terminateInstances() throws Throwable {
             List<CompletableFuture<Void>> futures = new ArrayList<>();
             for (CastleNode node : cluster.nodes().values()) {
