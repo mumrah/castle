@@ -18,6 +18,8 @@
 package io.confluent.castle.action;
 
 public class UnknownActionIdException extends RuntimeException {
+    public final static long serialVersionUID = 1;
+
     private final ActionId actionId;
 
     public UnknownActionIdException(ActionId actionId) {

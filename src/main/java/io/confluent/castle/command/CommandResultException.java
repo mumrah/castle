@@ -22,6 +22,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class CommandResultException extends RuntimeException {
+    public final static long serialVersionUID = 1;
+
     private final List<String> commandLine;
     private final int returnCode;
 
