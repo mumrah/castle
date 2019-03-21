@@ -26,6 +26,7 @@ import io.confluent.castle.cluster.CastleNodeSpec;
 import io.confluent.castle.common.CastleUtil;
 import io.confluent.castle.common.JsonConfigFile;
 import io.confluent.castle.common.StringExpander;
+import net.sourceforge.argparse4j.ArgumentParserBuilder;
 import net.sourceforge.argparse4j.ArgumentParsers;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -148,10 +149,9 @@ public final class CastleTool {
     }
 
     public static void main(String[] args) throws Throwable {
-        ArgumentParser parser = ArgumentParsers
-            .newArgumentParser("castle-tool")
-            .defaultHelp(true)
-            .description(CASTLE_DESCRIPTION);
+        ArgumentParser parser = ArgumentParsers.newFor("castle-tool").
+            addHelp(true).build().
+            description(CASTLE_DESCRIPTION);
 
         parser.addArgument("-c", "--cluster")
             .action(store())

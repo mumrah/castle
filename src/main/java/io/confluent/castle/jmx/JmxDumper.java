@@ -421,10 +421,10 @@ public final class JmxDumper {
     }
 
     public static void main(String[] args) throws Exception {
-        ArgumentParser parser = ArgumentParsers
-            .newArgumentParser("jmx-dumper")
-            .defaultHelp(true)
-            .description("Periodically dumps JMX state to comma-separated files.");
+        ArgumentParser parser = ArgumentParsers.newFor("jmx-dumper").
+            addHelp(true).build().
+            description("Periodically dumps JMX state to comma-separated files.");
+
         parser.addArgument("config_path")
             .action(store())
             .type(String.class)
