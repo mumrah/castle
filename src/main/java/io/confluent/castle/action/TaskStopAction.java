@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 public class TaskStopAction extends Action  {
-    public final static String TYPE = "tasksStop";
+    public final static String TYPE = "taskStop";
 
     private final TaskRole role;
 
