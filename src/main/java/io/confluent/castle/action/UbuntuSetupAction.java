@@ -19,11 +19,7 @@ package io.confluent.castle.action;
 
 import io.confluent.castle.cluster.CastleCluster;
 import io.confluent.castle.cluster.CastleNode;
-import io.confluent.castle.command.CommandResultException;
 import io.confluent.castle.role.UbuntuNodeRole;
-
-import java.util.Arrays;
-import java.util.List;
 
 /**
  * Install some necessary components on Ubuntu.
@@ -31,11 +27,11 @@ import java.util.List;
 public final class UbuntuSetupAction extends Action {
     public final static String TYPE = "ubuntuSetup";
 
+    private final static int MAX_TRIES = 3;
+
+    private final static int APT_GET_RETRY_PERIOD = 100;
+
     private final UbuntuNodeRole role;
-
-    private final static int APT_GET_BUSY_ERROR_CODE = 100;
-
-    private final static int APT_GET_RETRY_INTERVAL = 200;
 
     public UbuntuSetupAction(String scope, UbuntuNodeRole role) {
         super(new ActionId(TYPE, scope),
@@ -48,25 +44,19 @@ public final class UbuntuSetupAction extends Action {
     @Override
     public void call(CastleCluster cluster, CastleNode node) throws Throwable {
         node.log().printf("*** %s: Beginning UbuntuSetup...%n", node.nodeName());
-        while (true) {
-            List<String> commandLine = Arrays.asList("-n", "--",
+        for (int tries = 0; tries < MAX_TRIES; tries++) {
+            int result = node.uplink().command().args("-n", "--",
                 "sudo", "dpkg", "--configure", "-a", "&&",
                 "sudo", "apt-get", "update", "-y", "&&",
+                "sudo", "apt-get", "upgrade", "-y", "&&",
                 "sudo", "apt-get", "install", "-y", "iptables", "rsync", "wget", "curl", "collectd-core",
-                "coreutils", "cmake", "pkg-config", "libfuse-dev", role.jdkPackage());
-            int returnCode = node.uplink().command().argList(commandLine).run();
-            if (returnCode == 0) {
-                break;
-            } else if (returnCode == APT_GET_BUSY_ERROR_CODE) {
-                node.log().printf("*** %s: got exit status %d: retrying in %d ms.%n",
-                    node.nodeName(),
-                    returnCode,
-                    APT_GET_RETRY_INTERVAL);
-                Thread.sleep(APT_GET_RETRY_INTERVAL);
-            } else {
-                throw new CommandResultException(commandLine, returnCode);
+                "coreutils", "cmake", "pkg-config", "libfuse-dev", role.jdkPackage()).run();
+            if (result == 0) {
+                node.log().printf("*** %s: Finished UbuntuSetup.%n", node.nodeName());
+                return;
             }
+            Thread.sleep(APT_GET_RETRY_PERIOD);
         }
-        node.log().printf("*** %s: Finished UbuntuSetup.%n", node.nodeName());
+        throw new RuntimeException("Failed to setup Ubuntu after " + MAX_TRIES + " tries.");
     }
 };
