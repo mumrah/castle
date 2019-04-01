@@ -84,7 +84,7 @@ public class NodeShellRunner {
                 }
             } catch (EOFException e) {
             } catch (IOException e) {
-                castleLog.printf("OutputRedirectory IOException: %s%n", e.getMessage());
+                castleLog.printf("OutputHandler IOException: %s%n", e.getMessage());
             }
         }
     }
