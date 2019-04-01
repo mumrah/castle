@@ -58,7 +58,7 @@ public class ActionSchedulerTest {
             CastleLog.fromDevNull("cluster", false), null, spec);
     }
 
-    //@Test
+    @Test
     public void testCreateDestroy() throws Throwable {
         CastleCluster cluster = createCluster(2);
         ActionScheduler.Builder schedulerBuilder = new ActionScheduler.Builder(cluster);
@@ -67,7 +67,7 @@ public class ActionSchedulerTest {
         }
     }
 
-    //@Test
+    @Test
     public void testInvalidTargetName() throws Throwable {
         CastleCluster cluster = createCluster(2);
         ActionScheduler.Builder schedulerBuilder = new ActionScheduler.Builder(cluster);
@@ -82,7 +82,7 @@ public class ActionSchedulerTest {
         }
     }
 
-    //@Test
+    @Test
     public void testRunActions() throws Throwable {
         CastleCluster cluster = createCluster(3);
         final CyclicBarrier barrier = new CyclicBarrier(3);
@@ -110,7 +110,7 @@ public class ActionSchedulerTest {
         assertEquals(3, numRun.get());
     }
 
-    //@Test
+    @Test
     public void testContainedDependencies() throws Throwable {
         CastleCluster cluster = createCluster(3);
         Map<String, AtomicInteger> vals = Collections.synchronizedMap(new HashMap<>());
@@ -183,7 +183,7 @@ public class ActionSchedulerTest {
         }
     }
 
-    //@Test
+    @Test
     public void testAllDependency() throws Throwable {
         CastleCluster cluster = createCluster(3);
         final AtomicInteger count = new AtomicInteger(0);
