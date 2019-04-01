@@ -27,15 +27,25 @@ import io.confluent.castle.action.TrogdorStopAction;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 public class TrogdorAgentRole implements Role {
     private final int initialDelayMs;
 
+    private final List<String> log4j;
+
     public final static int PORT = 8888;
 
     @JsonCreator
-    public TrogdorAgentRole(@JsonProperty("initialDelayMs") int initialDelayMs) {
+    public TrogdorAgentRole(@JsonProperty("initialDelayMs") int initialDelayMs,
+                            @JsonProperty("log4j") List<String> log4j) {
         this.initialDelayMs = initialDelayMs;
+        if (log4j == null) {
+            this.log4j = Collections.singletonList("log4j.logger.org.apache.kafka=DEBUG");
+        } else {
+            this.log4j = Collections.unmodifiableList(new ArrayList<>(log4j));
+        }
     }
 
     @JsonProperty
@@ -43,11 +53,16 @@ public class TrogdorAgentRole implements Role {
         return initialDelayMs;
     }
 
+    @JsonProperty
+    public List<String> log4j() {
+        return log4j;
+    }
+
     @Override
     public Collection<Action> createActions(String nodeName) {
         ArrayList<Action> actions = new ArrayList<>();
         actions.add(new TrogdorStartAction(TrogdorDaemonType.AGENT,
-            nodeName, initialDelayMs));
+            nodeName, initialDelayMs, log4j));
         actions.add(new TrogdorStatusAction(TrogdorDaemonType.AGENT,
             nodeName));
         actions.add(new TrogdorStopAction(TrogdorDaemonType.AGENT,

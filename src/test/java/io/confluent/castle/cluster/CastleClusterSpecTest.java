@@ -53,9 +53,9 @@ public class CastleClusterSpecTest {
         map.put("node3", specB);
         Map<String, Role> roles = new HashMap<>();
         roles.put("broker", new BrokerRole(0, Collections.emptyMap(), "", null));
-        roles.put("trogdorAgent", new TrogdorAgentRole(0));
+        roles.put("trogdorAgent", new TrogdorAgentRole(0, Collections.<String>emptyList()));
         roles.put("zooKeeper", new ZooKeeperRole(0));
-        roles.put("trogdorCoordinator", new TrogdorCoordinatorRole(0));
+        roles.put("trogdorCoordinator", new TrogdorCoordinatorRole(0, Collections.emptyList()));
         roles.put("dockerNode", new DockerNodeRole(null, null,0, null, null, null));
         return new CastleClusterSpec(null, map, roles);
     }

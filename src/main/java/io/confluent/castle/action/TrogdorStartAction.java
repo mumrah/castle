@@ -28,6 +28,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -36,8 +37,10 @@ import static io.confluent.castle.action.ActionPaths.TROGDOR_START_SCRIPT;
 public class TrogdorStartAction extends Action  {
     private final TrogdorDaemonType daemonType;
 
+    private final List<String> log4j;
+
     public TrogdorStartAction(TrogdorDaemonType daemonType,
-            String scope, int initialDelayMs) {
+            String scope, int initialDelayMs, List<String> log4j) {
         super(new ActionId(daemonType.startType(), scope),
                 new TargetId[]{
                     // We need all nodes to be brought up before we can run this, so that
@@ -47,6 +50,7 @@ public class TrogdorStartAction extends Action  {
                 new String[]{},
                 initialDelayMs);
         this.daemonType = daemonType;
+        this.log4j = log4j;
     }
 
     @Override
@@ -167,7 +171,9 @@ public class TrogdorStartAction extends Action  {
             osw.write(String.format("log4j.appender.kafkaAppender.layout=org.apache.log4j.PatternLayout%n"));
             osw.write(String.format("log4j.appender.kafkaAppender.layout.ConversionPattern=%s%n%n",
                 "[%d] %p %m (%c)%n"));
-            osw.write(String.format("log4j.logger.org.apache.kafka=DEBUG%n")); //INFO%n"));
+            for (String line : log4j) {
+                osw.write(line + String.format("%n"));
+            }
             osw.write(String.format("%n"));
             success = true;
             return file;
