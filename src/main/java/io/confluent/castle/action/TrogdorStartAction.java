@@ -169,12 +169,11 @@ public class TrogdorStartAction extends Action  {
             osw.write(String.format("log4j.appender.kafkaAppender.File=%s%n",
                 daemonType.logPath()));
             osw.write(String.format("log4j.appender.kafkaAppender.layout=org.apache.log4j.PatternLayout%n"));
-            osw.write(String.format("log4j.appender.kafkaAppender.layout.ConversionPattern=%s%n%n",
+            osw.write(String.format("log4j.appender.kafkaAppender.layout.ConversionPattern=%s%n",
                 "[%d] %p %m (%c)%n"));
             for (String line : log4j) {
                 osw.write(line + String.format("%n"));
             }
-            osw.write(String.format("%n"));
             success = true;
             return file;
         } finally {
