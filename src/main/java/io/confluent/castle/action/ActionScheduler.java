@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -54,6 +55,7 @@ public final class ActionScheduler implements AutoCloseable {
         private final CastleCluster cluster;
         private final Set<String> targetNames = new HashSet<>();
         private final HashMap<ActionId, Action> actions = new HashMap<>();
+        private int maxConcurrentActions = Integer.MAX_VALUE;
 
         public Builder(CastleCluster cluster) {
             this.cluster = cluster;
@@ -83,6 +85,11 @@ public final class ActionScheduler implements AutoCloseable {
             return this;
         }
 
+        public Builder setMaxConcurrentActions(int maxConcurrentActions) {
+            this.maxConcurrentActions = maxConcurrentActions;
+            return this;
+        }
+
         public ActionScheduler build() {
             Set<ActionId> targetActions = findTargetActions();
             Map<ActionId, ActionData> universe = findUniverse(targetActions);
@@ -91,7 +98,7 @@ public final class ActionScheduler implements AutoCloseable {
                     CastleUtil.join(targetActions, ", "),
                     CastleUtil.join(universe.keySet(), ", "));
             }
-            return new ActionScheduler(cluster, targetActions, universe);
+            return new ActionScheduler(cluster, targetActions, universe, maxConcurrentActions);
         }
 
         private Set<ActionId> findTargetActions() {
@@ -244,10 +251,15 @@ public final class ActionScheduler implements AutoCloseable {
         @Override
         public void run() {
             try {
-                CastleLog.debugToAll(String.format("** Running %s", action.id()),
-                    node.log(), cluster.clusterLog());
-                action.call(cluster, node);
-                schedulerExecutor.submit(new FinishRunningAction(action));
+                runSemaphore.acquire();
+                try {
+                    CastleLog.debugToAll(String.format("** Running %s", action.id()),
+                        node.log(), cluster.clusterLog());
+                    action.call(cluster, node);
+                    schedulerExecutor.submit(new FinishRunningAction(action));
+                } finally {
+                    runSemaphore.release();
+                }
             } catch (Throwable throwable) {
                 String msg = "** ExecuteAction " + action.id() + " failed";
                 node.log().error(msg, throwable);
@@ -398,6 +410,11 @@ public final class ActionScheduler implements AutoCloseable {
     private final ExecutorService schedulerExecutor;
 
     /**
+     * A semaphore that limits the number of concurrently executing tasks.
+     */
+    private final Semaphore runSemaphore;
+
+    /**
      * A map from node names to executor services.
      * Node executors run actions in separate threads.
      */
@@ -405,12 +422,14 @@ public final class ActionScheduler implements AutoCloseable {
 
     private ActionScheduler(CastleCluster cluster,
                             Set<ActionId> targetActions,
-                            Map<ActionId, ActionData> universe) {
+                            Map<ActionId, ActionData> universe,
+                            int maxConcurrentActions) {
         this.cluster = cluster;
         this.universe = universe;
         this.shutdownFuture = new CompletableFuture<>();
         this.schedulerExecutor = Executors.newSingleThreadScheduledExecutor(
             CastleUtil.createThreadFactory("ActionSchedulerThread", false));
+        this.runSemaphore = new Semaphore(maxConcurrentActions);
         this.nodeExecutors = new HashMap<>();
         for (String nodeName : cluster.nodes().keySet()) {
             this.nodeExecutors.put(nodeName, Executors.newSingleThreadScheduledExecutor(

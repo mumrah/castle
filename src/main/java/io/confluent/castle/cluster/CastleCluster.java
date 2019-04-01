@@ -245,10 +245,12 @@ public final class CastleCluster implements AutoCloseable {
      * @return                      The new scheduler.
      */
     public ActionScheduler createScheduler(List<String> targetNames,
-                Collection<Action> additionalActions) throws Exception {
+                Collection<Action> additionalActions,
+                int maxConcurrentActions) throws Exception {
         ActionScheduler.Builder builder = new ActionScheduler.Builder(this);
         builder.addTargetNames(targetNames);
         builder.addActions(additionalActions);
+        builder.setMaxConcurrentActions(maxConcurrentActions);
         for (CastleNode node : nodes.values()) {
             for (Role role : node.roles().values()) {
                 builder.addActions(role.createActions(node.nodeName()));

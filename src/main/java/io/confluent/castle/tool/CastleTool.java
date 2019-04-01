@@ -59,6 +59,8 @@ public final class CastleTool {
     private static final String CASTLE_WORKING_DIRECTORY = "CASTLE_WORKING_DIRECTORY";
     private static final String CASTLE_VERBOSE = "CASTLE_VERBOSE";
     private static final boolean CASTLE_VERBOSE_DEFAULT = false;
+    private static final String CASTLE_MAX_CONCURRENT_ACTIONS = "CASTLE_MAX_CONCURRENT_ACTIONS";
+    private static final int CASTLE_MAX_CONCURRENT_ACTIONS_DEFAULT = 6;
     private static final String CASTLE_PREFIX = "CASTLE_";
 
     private static final String CASTLE_DESCRIPTION = String.format(
@@ -175,6 +177,14 @@ public final class CastleTool {
             .metavar(CASTLE_VERBOSE)
             .setDefault(getEnvBoolean(CASTLE_VERBOSE, CASTLE_VERBOSE_DEFAULT))
             .help("Enable verbose logging.");
+        parser.addArgument("-m", "--max-concurrent-actions")
+            .action(store())
+            .type(Integer.class)
+            .dest(CASTLE_MAX_CONCURRENT_ACTIONS)
+            .metavar(CASTLE_MAX_CONCURRENT_ACTIONS)
+            .setDefault(Integer.valueOf(getEnv(CASTLE_MAX_CONCURRENT_ACTIONS,
+                Integer.toString(CASTLE_MAX_CONCURRENT_ACTIONS_DEFAULT))))
+            .help("The maximum number of concurrent actions to allow.");
         parser.addArgument("target")
             .nargs("*")
             .action(store())
@@ -217,13 +227,15 @@ public final class CastleTool {
             CastleEnvironment env = new CastleEnvironment(workingDirectory);
             CastleClusterSpec clusterSpec = readClusterSpec(clusterPath);
 
+            int maxConcurrentActions = res.getInt(CASTLE_MAX_CONCURRENT_ACTIONS);
             try (CastleCluster cluster = new CastleCluster(env, clusterLog,
                     shutdownManager, clusterSpec)) {
                 if (targets.contains(CastleSsh.COMMAND)) {
                     CastleSsh.run(cluster, targets);
                 } else {
                     try (ActionScheduler scheduler = cluster.createScheduler(targets,
-                        ActionRegistry.INSTANCE.actions(cluster.nodes().keySet()))) {
+                        ActionRegistry.INSTANCE.actions(cluster.nodes().keySet()),
+                        maxConcurrentActions)) {
                         scheduler.await(cluster.conf().globalTimeout(), TimeUnit.SECONDS);
                     }
                 }
