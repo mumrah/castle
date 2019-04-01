@@ -43,6 +43,7 @@ public final class UbuntuSetupAction extends Action {
         node.uplink().command().args("-n", "--",
             "sudo", "dpkg", "--configure", "-a", "&&",
             "sudo", "apt-get", "update", "-y", "&&",
+            "sudo", "apt-get", "upgrade", "-y", "&&",
             "sudo", "apt-get", "install", "-y", "iptables", "rsync", "wget", "curl", "collectd-core",
             "coreutils", "cmake", "pkg-config", "libfuse-dev", role.jdkPackage()).mustRun();
         node.log().printf("*** %s: Finished UbuntuSetup.%n", node.nodeName());
