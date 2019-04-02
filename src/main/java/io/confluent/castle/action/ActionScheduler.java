@@ -488,11 +488,14 @@ public final class ActionScheduler implements AutoCloseable {
         for (Map.Entry<String, NodeExecutorInfo> entry : nodeExecutorInfos.entrySet()) {
             map.put(entry.getKey(), entry.getValue().actionType());
         }
-        out.println("###########################################");
+        StringBuilder bld = new StringBuilder();
+        bld.append("RUNNING: "); 
+        String prefix = "";
         for (Map.Entry<String, String> entry : map.entrySet()) {
-            out.printf("%s: %s%n", entry.getKey(), entry.getValue());
+            bld.append(String.format("%s%s: %s", prefix, entry.getKey(), entry.getValue()));
+            prefix = ", ";
         }
-        out.println("###########################################");
+        out.println(bld.toString());
     }
 
     /**
