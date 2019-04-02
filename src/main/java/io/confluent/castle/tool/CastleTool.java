@@ -196,6 +196,7 @@ public final class CastleTool {
         final Namespace res = parser.parseArgsOrFail(args);
         final CastleLog clusterLog = CastleLog.
             fromStdout("cluster", res.getBoolean(CASTLE_VERBOSE));
+        final CastleSignalHandler signalHandler = new CastleSignalHandler();
         CastleShutdownManager shutdownManager = new CastleShutdownManager(clusterLog);
         shutdownManager.install();
         try {
@@ -234,9 +235,13 @@ public final class CastleTool {
                     CastleSsh.run(cluster, targets);
                 } else {
                     try (ActionScheduler scheduler = cluster.createScheduler(targets,
-                        ActionRegistry.INSTANCE.actions(cluster.nodes().keySet()),
-                        maxConcurrentActions)) {
+                            ActionRegistry.INSTANCE.actions(cluster.nodes().keySet()),
+                            maxConcurrentActions)) {
+                        signalHandler.register(CastleSignalHandler.CastleSignal.NOHUP,
+                            () -> scheduler.logCurrentActions(System.out));
                         scheduler.await(cluster.conf().globalTimeout(), TimeUnit.SECONDS);
+                    } finally {
+                        signalHandler.unregister(CastleSignalHandler.CastleSignal.NOHUP);
                     }
                 }
             }

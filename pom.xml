@@ -100,7 +100,12 @@
                 <configuration>
                     <compilerArgs>
                         <arg>-Xlint:all,-options,-path,-deprecation</arg>
-                        <arg>-Werror</arg>
+                          <!-- Unfortunately, there are many spurious Java compiler warnings that just
+                            can't be disabled.  For example, warnings about using Sun APIs cannot be
+                            disabled or suppressed.  Warnings about AutoCloseable subclasses throwing
+                            InterruptedException are not useful, but they also can't be suppressed.
+                            For now, we enable the warnings, but just accept that some of them need to
+                            be ignored. -->
                     </compilerArgs>
                 </configuration>
             </plugin>

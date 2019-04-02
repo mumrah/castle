@@ -22,6 +22,8 @@ import io.confluent.castle.cluster.CastleCluster;
 import io.confluent.castle.cluster.CastleNode;
 import io.confluent.castle.common.CastleLog;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.util.ArrayDeque;
 import java.util.Collection;
 import java.util.Deque;
@@ -30,7 +32,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -252,12 +256,14 @@ public final class ActionScheduler implements AutoCloseable {
         public void run() {
             try {
                 runSemaphore.acquire();
+                nodeExecutorInfos.put(node.nodeName(), new NodeExecutorInfo(action.id().type()));
                 try {
                     CastleLog.debugToAll(String.format("** Running %s", action.id()),
                         node.log(), cluster.clusterLog());
                     action.call(cluster, node);
                     schedulerExecutor.submit(new FinishRunningAction(action));
                 } finally {
+                    nodeExecutorInfos.remove(node.nodeName());
                     runSemaphore.release();
                 }
             } catch (Throwable throwable) {
@@ -384,6 +390,18 @@ public final class ActionScheduler implements AutoCloseable {
         }
     }
 
+    public static class NodeExecutorInfo {
+        private final String actionType;
+
+        NodeExecutorInfo(String actionType) {
+            this.actionType = actionType;
+        }
+
+        public String actionType() {
+            return actionType;
+        }
+    }
+
     /**
      * The castle cluter to use for this scheduler.
      */
@@ -420,6 +438,11 @@ public final class ActionScheduler implements AutoCloseable {
      */
     private final Map<String, ScheduledExecutorService> nodeExecutors;
 
+    /**
+     * Information about the node executors.
+     */
+    private final ConcurrentHashMap<String, NodeExecutorInfo> nodeExecutorInfos;
+
     private ActionScheduler(CastleCluster cluster,
                             Set<ActionId> targetActions,
                             Map<ActionId, ActionData> universe,
@@ -431,6 +454,7 @@ public final class ActionScheduler implements AutoCloseable {
             CastleUtil.createThreadFactory("ActionSchedulerThread", false));
         this.runSemaphore = new Semaphore(maxConcurrentActions);
         this.nodeExecutors = new HashMap<>();
+        this.nodeExecutorInfos = new ConcurrentHashMap<String, NodeExecutorInfo>();
         for (String nodeName : cluster.nodes().keySet()) {
             this.nodeExecutors.put(nodeName, Executors.newSingleThreadScheduledExecutor(
                 CastleUtil.createThreadFactory(
@@ -454,6 +478,21 @@ public final class ActionScheduler implements AutoCloseable {
     public void await(long duration, TimeUnit timeUnit)
             throws InterruptedException, ExecutionException, TimeoutException {
         shutdownFuture.get(duration, timeUnit);
+    }
+
+    /**
+     * Log the currently executing actions to the provided PrintStream.
+     */
+    public void logCurrentActions(PrintStream out) {
+        TreeMap<String, String> map = new TreeMap<>();
+        for (Map.Entry<String, NodeExecutorInfo> entry : nodeExecutorInfos.entrySet()) {
+            map.put(entry.getKey(), entry.getValue().actionType());
+        }
+        out.println("###########################################");
+        for (Map.Entry<String, String> entry : map.entrySet()) {
+            out.printf("%s: %s%n", entry.getKey(), entry.getValue());
+        }
+        out.println("###########################################");
     }
 
     /**
