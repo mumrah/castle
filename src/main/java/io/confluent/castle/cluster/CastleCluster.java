@@ -32,6 +32,7 @@ import io.confluent.castle.tool.CastleEnvironment;
 import io.confluent.castle.tool.CastleShutdownManager;
 import io.confluent.castle.uplink.Uplink;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -273,5 +274,11 @@ public final class CastleCluster implements AutoCloseable {
         for (Map.Entry<String, CastleNode> entry : nodes.entrySet()) {
             CastleUtil.closeQuietly(clusterLog, entry.getValue(), "cluster castleLogs");
         }
+    }
+
+    public synchronized void writeToDisk() throws Exception {
+        String path = env().clusterOutputPath();
+        JSON_SERDE.writeValue(new File(path), toSpec());
+        clusterLog().printf("*** Wrote new cluster file to %s%n", path);
     }
 }

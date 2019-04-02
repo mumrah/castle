@@ -52,10 +52,6 @@ public final class AwsInitAction extends Action {
             node.log().printf("*** Skipping %s, because the node is already running.%n", TYPE);
             return;
         }
-        if (new File(cluster.env().clusterOutputPath()).exists()) {
-            throw new RuntimeException("Output cluster path " + cluster.env().clusterOutputPath() +
-                " already exists.");
-        }
 
         // Make sure that we don't leak an AWS instance if we shut down unexpectedly.
         cluster.shutdownManager().addHookIfMissing(new DestroyAwsInstancesShutdownHook(cluster));
@@ -64,7 +60,7 @@ public final class AwsInitAction extends Action {
         node.uplink().startup();
 
         // Write out the new cluster file.
-        JSON_SERDE.writeValue(new File(cluster.env().clusterOutputPath()), cluster.toSpec());
+        cluster.writeToDisk();
     }
 
     /**
@@ -81,12 +77,11 @@ public final class AwsInitAction extends Action {
         @Override
         public void run(CastleReturnCode returnCode) throws Throwable {
             if (returnCode == CastleReturnCode.SUCCESS) {
-                String path = cluster.env().clusterOutputPath();
                 try {
-                    JSON_SERDE.writeValue(new File(path), cluster.toSpec());
-                    cluster.clusterLog().printf("*** Wrote new cluster file to %s%n", path);
+                    cluster.writeToDisk();
                 } catch (Throwable e) {
-                    cluster.clusterLog().printf("*** Failed to write cluster file to %s%n", path, e);
+                    cluster.clusterLog().printf("*** Failed to write cluster file to %s%n",
+                        cluster.env().clusterOutputPath(), e);
                     terminateInstances();
                     throw e;
                 }
