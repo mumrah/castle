@@ -24,21 +24,17 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-@SuppressWarnings("sunapi")
 public class CastleSignalHandler implements AutoCloseable {
     public enum CastleSignal {
-        NOHUP;
+        HUP;
     }
 
-    @SuppressWarnings("sunapi")
     private final Map<CastleSignal, SignalHandler> prevSignalHandlers;
 
-    @SuppressWarnings("sunapi")
     public CastleSignalHandler() {
         this.prevSignalHandlers = new HashMap<>();
     }
 
-    @SuppressWarnings("sunapi")
     public synchronized void register(final CastleSignal signal, final Runnable handler) {
         if (prevSignalHandlers.containsKey(signal)) {
             throw new RuntimeException("There is already a handler for " + signal);
@@ -54,12 +50,10 @@ public class CastleSignalHandler implements AutoCloseable {
         System.out.printf("** Installed handler for %s%n", signal.toString());
     }
 
-    @SuppressWarnings("sunapi")
     public synchronized void unregister(final CastleSignal signal) {
         prevSignalHandlers.remove(signal);
     }
 
-    @SuppressWarnings("sunapi")
     @Override
     public synchronized void close() throws Exception {
         for (Iterator<Map.Entry<CastleSignal, SignalHandler>> iterator =

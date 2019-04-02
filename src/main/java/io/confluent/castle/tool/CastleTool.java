@@ -237,11 +237,11 @@ public final class CastleTool {
                     try (ActionScheduler scheduler = cluster.createScheduler(targets,
                             ActionRegistry.INSTANCE.actions(cluster.nodes().keySet()),
                             maxConcurrentActions)) {
-                        signalHandler.register(CastleSignalHandler.CastleSignal.NOHUP,
+                        signalHandler.register(CastleSignalHandler.CastleSignal.HUP,
                             () -> scheduler.logCurrentActions(System.out));
                         scheduler.await(cluster.conf().globalTimeout(), TimeUnit.SECONDS);
                     } finally {
-                        signalHandler.unregister(CastleSignalHandler.CastleSignal.NOHUP);
+                        signalHandler.unregister(CastleSignalHandler.CastleSignal.HUP);
                     }
                 }
             }
