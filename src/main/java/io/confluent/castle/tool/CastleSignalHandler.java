@@ -47,7 +47,6 @@ public class CastleSignalHandler implements AutoCloseable {
                         handler.run();
                     }
                 }));
-        System.out.printf("** Installed handler for %s%n", signal.toString());
     }
 
     public synchronized void unregister(final CastleSignal signal) {
