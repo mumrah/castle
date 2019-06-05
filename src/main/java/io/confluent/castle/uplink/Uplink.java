@@ -42,6 +42,8 @@ public interface Uplink extends AutoCloseable {
      */
     String internalDns();
 
+    String externalDns();
+
     /**
      * Return true if the node was started.
      */

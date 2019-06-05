@@ -31,6 +31,11 @@ import javax.management.InstanceNotFoundException;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanInfo;
 import javax.management.MBeanServerConnection;
+import javax.management.ObjectInstance;
+import javax.management.ObjectName;
+import javax.management.Query;
+import javax.management.QueryExp;
+import javax.management.openmbean.CompositeData;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
@@ -47,14 +52,18 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
 import static java.nio.file.StandardOpenOption.WRITE;
@@ -135,17 +144,7 @@ public final class JmxDumper {
             HashMap<String, String> shortNames = new HashMap<>();
             CsvRow headerRow = new CsvRow();
             headerRow.add("time");
-            for (JmxObjectConfig object : file.objects()) {
-                String prev = shortNames.get(object.shortName());
-                if (prev != null) {
-                    throw new RuntimeException("shortName collision: both " + prev + " and " +
-                        object.name() + " have the shortName " + object.shortName());
-                }
-                shortNames.put(object.shortName(), object.name());
-                for (String attribute : object.attributes()) {
-                    headerRow.add(object.shortName() + ":" + attribute);
-                }
-            }
+            objectsAndAttrs.forEach(objectsAndAttr -> headerRow.add(objectsAndAttr.displayName));
             writer.write(headerRow.asString());
             writer.flush();
         }
@@ -159,35 +158,17 @@ public final class JmxDumper {
         public void storeJmx(long time) throws Exception {
             CsvRow row = new CsvRow();
             row.addTimeMs(time);
-            for (JmxObjectConfig object : file.objects()) {
-                HashMap<String, Object> values = new HashMap<>();
-                List<Attribute> attributeList = null;
-                Collection<String> attributesToGet = object.attributes();
-                if (attributesToGet.isEmpty()) {
-                    attributesToGet = objectNameToAllAttributes.get(object.name());
-                }
-                try {
-                    attributeList = connection.getAttributes(object.objectName(),
-                        attributesToGet.toArray(new String[0])).asList();
-                } catch (Throwable e) {
-                    throw new RuntimeException("Failed to get attributes for object " + object.name(), e);
-                }
-                for (Attribute attribute : attributeList) {
-                    try {
-                        values.put(attribute.getName(), attribute.getValue());
-                    } catch (Throwable e) {
-                        throw new RuntimeException("Failed to get a value for attribute " + attribute, e);
-                    }
-                }
-                for (String attributeName : attributesToGet) {
-                    Object value = values.get(attributeName);
-                    if (value == null) {
-                        throw new RuntimeException("getAttributes failed to fetch a value for " +
-                            object.name() + ":" + attributeName + ".");
-                    }
-                    row.addObject(value);
+
+            for (CheckJmx.ObjectNameAndAttribute objectAndAttr : objectsAndAttrs) {
+                Object attrValue = connection.getAttribute(objectAndAttr.objectName, objectAndAttr.attribute);
+                if (!Objects.isNull(attrValue)) {
+                    attrValue = objectAndAttr.valueTransformer.apply(attrValue);
+                    row.addObject(attrValue);
+                } else {
+                    row.add("");
                 }
             }
+
             writer.write(row.asString());
         }
     }
@@ -284,29 +265,73 @@ public final class JmxDumper {
 
         private final boolean load() throws Exception {
             Collection<JmxObjectConfig> objects = dumperConfig.allObjects();
-            for (JmxObjectConfig object : objects) {
-                MBeanInfo info = null;
-                try {
-                    info = connection.getMBeanInfo(object.objectName());
-                } catch (InstanceNotFoundException e) {
-                    System.out.printf("** Unable to locate %s%n", object.name());
-                    return false;
+            for (JmxObjectConfig jmxObjectConfig : objects) {
+                QueryExp jmxQuery = null;
+                if (!jmxObjectConfig.className().isEmpty()) {
+                    jmxQuery = Query.isInstanceOf(Query.value(jmxObjectConfig.className()));
                 }
-                ArrayList<String> attributeList = new ArrayList<>();
-                for (MBeanAttributeInfo attributeInfo : info.getAttributes()) {
-                    System.out.printf("** %s contains: %s%n", object.name(), attributeInfo);
-                    attributeList.add(attributeInfo.getName());
-                }
-                objectNameToAllAttributes.put(object.name(), attributeList);
-                for (String attribute : object.attributes()) {
-                    if (!attributeList.contains(attribute)) {
-                        throw new RuntimeException("Unable to find attribute " + attribute + " for " +
-                            object.name() + ".  Found: " + String.join("|", attributeList));
+                Set<ObjectName> names = connection.queryNames(jmxObjectConfig.objectName(), jmxQuery);
+                System.out.printf("** Looking for %s%n", jmxObjectConfig.objectName());
+                for (ObjectName name : names) {
+                    System.out.printf("** Found name %s%n", name.getCanonicalName());
+                    MBeanInfo info = null;
+                    try {
+                        info = connection.getMBeanInfo(name);
+                    } catch (InstanceNotFoundException e) {
+                        System.out.printf("** Unable to locate %s%n", name.getCanonicalName());
+                        continue;
+                    }
+                    if (info == null) {
+                        continue;
+                    }
+
+                    ArrayList<String> foundAttrs = new ArrayList<>();
+                    for (MBeanAttributeInfo attributeInfo : info.getAttributes()) {
+                        System.out.printf("** %s contains: %s%n", name.getCanonicalName(), attributeInfo);
+                        foundAttrs.add(attributeInfo.getName());
+                    }
+
+                    for (String simpleAttr : jmxObjectConfig.attributes()) {
+                        if (foundAttrs.contains(simpleAttr)) {
+                            objectsAndAttrs.add(new ObjectNameAndAttribute(name, simpleAttr, Function.identity(), jmxObjectConfig.shortName() + ":" + simpleAttr));
+                        } else {
+                            System.out.printf("** Could not find attribute %s for object %s%n", simpleAttr, name);
+                        }
+                    }
+
+                    for (Map.Entry<String, String> compoundAttr : jmxObjectConfig.compoundAttributes().entrySet()) {
+                        if (foundAttrs.contains(compoundAttr.getKey())) {
+                            objectsAndAttrs.add(new ObjectNameAndAttribute(name, compoundAttr.getKey(), object -> {
+                                if (object instanceof CompositeData) {
+                                    return ((CompositeData)object).get(compoundAttr.getValue());
+                                } else if (object instanceof Map) {
+                                    return ((Map)object).get(compoundAttr.getValue());
+                                } else {
+                                    return object.toString();
+                                }
+                            }, jmxObjectConfig.shortName() + ":" + compoundAttr.getKey()));
+                        } else {
+                            System.out.printf("** Could not find attribute %s for object %s%n", compoundAttr.getKey(), name);
+                        }
                     }
                 }
             }
             System.out.printf("** Located %d object names.%n", objects.size());
             return true;
+        }
+
+        public class ObjectNameAndAttribute {
+            public final ObjectName objectName;
+            public final String attribute;
+            public final Function<Object, Object> valueTransformer;
+            public final String displayName;
+
+            public ObjectNameAndAttribute(ObjectName objectName, String attribute, Function<Object, Object> valueTransformer, String displayName) {
+                this.objectName = objectName;
+                this.attribute = attribute;
+                this.valueTransformer = valueTransformer;
+                this.displayName = displayName;
+            }
         }
     }
 
@@ -399,7 +424,8 @@ public final class JmxDumper {
     private JMXConnector connector = null;
     private MBeanServerConnection connection = null;
     private final List<CsvFile> csvFiles = new ArrayList<>();
-    private final HashMap<String, List<String>> objectNameToAllAttributes = new HashMap<>();
+    private final List<CheckJmx.ObjectNameAndAttribute> objectsAndAttrs = new ArrayList<>();
+
 
     JmxDumper(String endpoint, JmxDumperConfig dumperConfig, Completer completer) throws Exception {
         this.url = new DumperUrl(endpoint);

@@ -23,27 +23,41 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import javax.management.ObjectName;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 public final class JmxObjectConfig {
     private final String name;
+    private final String className;
     private final String shortName;
     private final List<String> attributes;
+    private final Map<String, String> compoundAttributes;
     private final ObjectName objectName;
 
     @JsonCreator
     public JmxObjectConfig(@JsonProperty("name") String name,
+                           @JsonProperty("class") String className,
                            @JsonProperty("shortName") String shortName,
-                           @JsonProperty("attributes") List<String> attributes) throws Exception {
+                           @JsonProperty("attributes") List<String> attributes,
+                           @JsonProperty("compoundAttributes") Map<String, String> compoundAttributes) throws Exception {
         this.name = (name == null) ? "" : name;
+        this.className = (className == null) ? "" : className;
         this.shortName = (shortName == null) ? "" : shortName;
         this.attributes = (attributes == null) ? Collections.emptyList() : new ArrayList<>(attributes);
+        this.compoundAttributes = (compoundAttributes == null) ? Collections.emptyMap() : new LinkedHashMap<>(compoundAttributes);
         this.objectName = new ObjectName(this.name);
     }
 
     @JsonProperty
     public String name() {
         return name;
+    }
+
+    @JsonProperty("class")
+    public String className() {
+        return className;
     }
 
     @JsonProperty
@@ -54,6 +68,11 @@ public final class JmxObjectConfig {
     @JsonProperty
     public List<String> attributes() {
         return attributes;
+    }
+
+    @JsonProperty
+    public Map<String, String> compoundAttributes() {
+        return compoundAttributes;
     }
 
     ObjectName objectName() {

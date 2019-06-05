@@ -78,6 +78,7 @@ public class TaskStartAction extends Action  {
     private Map<String, String> getTransforms(CastleCluster cluster) {
         HashMap<String, String> transforms = new HashMap<>();
         transforms.put("bootstrapServers", cluster.getBootstrapServers());
+        transforms.put("zkConnect", cluster.getZooKeeperConnectString());
         return transforms;
     }
 };

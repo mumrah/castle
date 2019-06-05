@@ -113,6 +113,11 @@ public class AwsNodeRole implements Role, UplinkRole {
     private String region;
 
     /**
+     * The AWS availability zone to use. If this is empty, the default zone will be used.
+     */
+    private String zone;
+
+    /**
      * Additional files to copy into the docker image.
      */
     private final List<AdditionalFile> additionalFiles;
@@ -130,6 +135,7 @@ public class AwsNodeRole implements Role, UplinkRole {
                        @JsonProperty("publicDns") String publicDns,
                        @JsonProperty("instanceId") String instanceId,
                        @JsonProperty("region") String region,
+                       @JsonProperty("zone") String zone,
                        @JsonProperty("additionalFiles") List<AdditionalFile> additionalFiles) {
         this.keyPair = keyPair == null ? "" : keyPair;
         this.securityGroup = securityGroup == null ? "" : securityGroup;
@@ -143,6 +149,7 @@ public class AwsNodeRole implements Role, UplinkRole {
         this.publicDns = publicDns == null ? "" : publicDns;
         this.instanceId = instanceId == null ? "" : instanceId;
         this.region = region == null ? "" : region;
+        this.zone = zone == null ? "" : zone;
         this.additionalFiles = additionalFiles == null ? Collections.emptyList() :
             Collections.unmodifiableList(new ArrayList<>(additionalFiles));
     }
@@ -213,6 +220,11 @@ public class AwsNodeRole implements Role, UplinkRole {
     @JsonProperty
     public String region() {
         return region;
+    }
+
+    @JsonProperty
+    public String zone() {
+        return zone;
     }
 
     public synchronized void setInstanceId(String instanceId) {

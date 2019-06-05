@@ -204,6 +204,9 @@ public class NodeShellRunner {
             }
             node.log().printf("** %s: FINISHED %s with RESULT %d%n",
                 node.nodeName(), Command.joinArgs(commandLine), retCode);
+        } catch (Exception e) {
+            node.log().printf("** %s: FAILED %s with ERROR %s%n",
+                    node.nodeName(), Command.joinArgs(commandLine), e.getMessage());
         } finally {
             if (process != null) {
                 process.destroy();

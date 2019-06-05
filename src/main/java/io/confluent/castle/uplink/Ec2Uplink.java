@@ -17,6 +17,7 @@
 
 package io.confluent.castle.uplink;
 
+import com.amazonaws.services.ec2.model.Placement;
 import io.confluent.castle.cloud.Ec2Cloud;
 import io.confluent.castle.cloud.Ec2InstanceInfo;
 import io.confluent.castle.cluster.CastleCluster;
@@ -74,6 +75,11 @@ public class Ec2Uplink implements Uplink {
     }
 
     @Override
+    public String externalDns() {
+        return role.publicDns();
+    }
+
+    @Override
     public boolean started() {
         return !role.privateDns().isEmpty();
     }
@@ -87,8 +93,11 @@ public class Ec2Uplink implements Uplink {
     public void startup() throws Exception {
         node.log().printf("*** Creating new instance with instance type %s, imageId %s%n",
             role.instanceType(), role.imageId());
-        String instanceId = cloud.createInstance(role.instanceType(), role.imageId(),
-            node.nodeIndex()).get();
+        Placement placement = new Placement();
+        if(!role.zone().isEmpty()) {
+            placement.setAvailabilityZone(role.zone());
+        }
+        String instanceId = cloud.createInstance(role.instanceType(), role.imageId(), placement, node.nodeName(), node.nodeIndex()).get();
         role.setInstanceId(instanceId);
 
         // Wait for the DNS to be set up.

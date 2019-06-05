@@ -23,6 +23,7 @@ import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
 import com.amazonaws.services.ec2.model.Filter;
 import com.amazonaws.services.ec2.model.Instance;
+import com.amazonaws.services.ec2.model.Placement;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.ResourceType;
 import com.amazonaws.services.ec2.model.RunInstancesRequest;
@@ -91,11 +92,15 @@ public final class Ec2Cloud implements AutoCloseable, Runnable {
         private final CompletableFuture<String> future = new CompletableFuture<>();
         private final String instanceType;
         private final String imageId;
+        private final Placement nodePlacement;
+        private final String nodeName;
         private final int nodeIndex;
 
-        CreateInstanceOp(String instanceType, String imageId, int nodeIndex) {
+        CreateInstanceOp(String instanceType, String imageId, Placement nodePlacement, String nodeName, int nodeIndex) {
             this.instanceType = instanceType;
             this.imageId = imageId;
+            this.nodePlacement = nodePlacement;
+            this.nodeName = nodeName;
             this.nodeIndex = nodeIndex;
         }
     }
@@ -221,16 +226,19 @@ public final class Ec2Cloud implements AutoCloseable, Runnable {
                 }
                 log.info("Ec2Cloud#makeCalls.  batchCreates.size={}, imageId={}, keyName={}, securityGroups={}",
                     batchCreates.size(), firstCreate.imageId, settings.keyPair(), settings.securityGroup());
+                TagSpecification tagSpec = new TagSpecification();
+                tagSpec.withResourceType(ResourceType.Instance)
+                        .withTags(CASTLE_TAG, new Tag("Name", firstCreate.nodeName));
+
                 RunInstancesRequest req = new RunInstancesRequest()
                     .withInstanceType(firstCreate.instanceType)
                     .withImageId(firstCreate.imageId)
+                    .withPlacement(firstCreate.nodePlacement)
                     .withMinCount(batchCreates.size())
                     .withMaxCount(batchCreates.size())
                     .withKeyName(settings.keyPair())
-                    .withSecurityGroups(settings.securityGroup())
-                    .withTagSpecifications(
-                        new TagSpecification().withResourceType(ResourceType.Instance).
-                            withTags(CASTLE_TAG));
+                    .withSecurityGroupIds(settings.securityGroup())
+                    .withTagSpecifications(tagSpec);
 
                 RunInstancesResult result = ec2.runInstances(req);
                 Reservation reservation = result.getReservation();
@@ -346,9 +354,9 @@ public final class Ec2Cloud implements AutoCloseable, Runnable {
         ec2.shutdown();
     }
 
-    public synchronized CompletableFuture<String> createInstance(String instanceType,
-                String imageId, int nodeIndex) {
-        CreateInstanceOp op = new CreateInstanceOp(instanceType, imageId, nodeIndex);
+    public synchronized CompletableFuture<String> createInstance(String instanceType, String imageId,
+                                                                 Placement nodePlacement, String nodeName, int nodeIndex) {
+        CreateInstanceOp op = new CreateInstanceOp(instanceType, imageId, nodePlacement, nodeName, nodeIndex);
         creates.add(op);
         updateNextCallTime(COALSCE_DELAY_MS);
         notifyAll();

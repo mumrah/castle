@@ -31,16 +31,32 @@ public class ZooKeeperRole implements Role {
     public static final String ZOOKEEPER_CLASS_NAME =
         "org.apache.zookeeper.server.quorum.QuorumPeerMain";
 
+    private static final String DEFAULT_JVM_PERFORMANCE_OPTS = "-Xmx3g -Xms3g";
+
     private final int initialDelayMs;
 
+    private final String jvmOptions;
+
     @JsonCreator
-    public ZooKeeperRole(@JsonProperty("initialDelayMs") int initialDelayMs) {
+    public ZooKeeperRole(
+            @JsonProperty("initialDelayMs") int initialDelayMs,
+            @JsonProperty("jvmOptions") String jvmOptions) {
         this.initialDelayMs = initialDelayMs;
+        if ((jvmOptions == null) || jvmOptions.isEmpty()) {
+            this.jvmOptions = DEFAULT_JVM_PERFORMANCE_OPTS;
+        } else {
+            this.jvmOptions = jvmOptions;
+        }
     }
 
     @JsonProperty
     public int initialDelayMs() {
         return initialDelayMs;
+    }
+
+    @JsonProperty
+    public String jvmOptions() {
+        return jvmOptions;
     }
 
     @Override

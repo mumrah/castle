@@ -64,6 +64,11 @@ public class DockerUplink implements Uplink {
     }
 
     @Override
+    public String externalDns() {
+        return role.containerName();
+    }
+
+    @Override
     public boolean started() {
         return !role.containerName().isEmpty();
     }
