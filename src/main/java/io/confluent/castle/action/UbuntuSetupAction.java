@@ -46,11 +46,13 @@ public final class UbuntuSetupAction extends Action {
         node.log().printf("*** %s: Beginning UbuntuSetup...%n", node.nodeName());
         for (int tries = 0; tries < MAX_TRIES; tries++) {
             int result = node.uplink().command().args("-n", "--",
-                "sudo", "dpkg", "--configure", "-a", "&&",
-                "sudo", "apt-get", "update", "-y", "&&",
-                "sudo", "apt-get", "upgrade", "-y", "&&",
-                "sudo", "apt-get", "install", "-y", "iptables", "rsync", "wget", "curl", "collectd-core",
-                "coreutils", "cmake", "pkg-config", "libfuse-dev", role.jdkPackage()).run();
+                "export", "DEBIAN_FRONTEND=noninteractive", "&&",
+                "sudo", "-E", "dpkg", "--configure", "-a", "&&",
+                "sudo", "-E", "apt-get", "update", "-y", "&&",
+                "sudo", "-E", "apt-get", "upgrade", "-y", "&&",
+                "sudo", "-E", "apt-get", "install", "--option", "\"Dpkg::Options::=--force-confold\"", "-y",
+                    "iptables", "rsync", "wget", "curl", "collectd-core",
+                    "coreutils", "cmake", "pkg-config", "libfuse-dev", role.jdkPackage()).run();
             if (result == 0) {
                 node.log().printf("*** %s: Finished UbuntuSetup.%n", node.nodeName());
                 return;
